@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # GitLab CE - Test Instance
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    container_name: gitlab-ce-test
+    hostname: gitlab.local
+
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab.local'
+        # Disable HTTPS for simplicity
+        nginx['listen_https'] = false
+        # Reduce resource usage for testing
+        puma['worker_processes'] = 2
+        sidekiq['max_concurrency'] = 10
+        postgresql['shared_buffers'] = "256MB"
+        # Disable some features we don't need for MCP testing
+        prometheus_monitoring['enable'] = false
+        gitlab_rails['gitlab_email_enabled'] = false
+
+    ports:
+      - "9080:80"     # HTTP (using 9080 to avoid conflicts)
+      - "9022:22"     # SSH (if needed)
+
+    volumes:
+      - gitlab-config:/etc/gitlab
+      - gitlab-logs:/var/log/gitlab
+      - gitlab-data:/var/opt/gitlab
+
+    shm_size: '256m'
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/-/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+    networks:
+      - gitlab-mcp-net
+
+  # GitLab MCP Server (optional - for containerized testing)
+  # gitlab-mcp:
+  #   image: node:20-alpine
+  #   container_name: gitlab-mcp-test
+  #   working_dir: /app
+  #   depends_on:
+  #     gitlab:
+  #       condition: service_healthy
+  #
+  #   volumes:
+  #     - .:/app
+  #     - /app/node_modules
+  #
+  #   environment:
+  #     GITLAB_API_URL: "http://gitlab.local/api/v4"
+  #     GITLAB_TOKEN: "${GITLAB_TOKEN}"
+  #     GITLAB_READ_ONLY_MODE: "false"
+  #     USE_GITLAB_WIKI: "true"
+  #     USE_PIPELINE: "true"
+  #     NODE_ENV: "development"
+  #
+  #   stdin_open: true
+  #   tty: true
+  #   command: /bin/sh -c "npm install && tail -f /dev/null"
+  #
+  #   networks:
+  #     - gitlab-mcp-net
+
+volumes:
+  gitlab-config:
+    name: gitlab-mcp-test-config
+  gitlab-logs:
+    name: gitlab-mcp-test-logs
+  gitlab-data:
+    name: gitlab-mcp-test-data
+
+networks:
+  gitlab-mcp-net:
+    driver: bridge

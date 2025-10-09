@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  gitlab-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile.eval
+    container_name: gitlab-mcp-eval
+    environment:
+      # GitLab Configuration
+      GITLAB_API_URL: "${GITLAB_API_URL}"
+      GITLAB_TOKEN: "${GITLAB_TOKEN}"
+
+      # Feature Flags (from source code inspection)
+      GITLAB_READ_ONLY_MODE: "${GITLAB_READ_ONLY_MODE:-false}"
+      USE_GITLAB_WIKI: "${USE_GITLAB_WIKI:-true}"
+      USE_PIPELINE: "${USE_PIPELINE:-true}"
+
+      # Optional: Project Access Level (50 = Owner, 40 = Maintainer, 30 = Developer)
+      GITLAB_PROJECT_ACCESS_LEVEL: "${GITLAB_PROJECT_ACCESS_LEVEL:-50}"
+
+      # MCP Transport Mode (for evaluation, use stdio - default)
+      # SSE and STREAMABLE_HTTP are for alternative transport modes
+      SSE: "${SSE:-false}"
+      STREAMABLE_HTTP: "${STREAMABLE_HTTP:-false}"
+
+      # Node Environment
+      NODE_ENV: "production"
+
+    # MCP uses stdio, so we need to keep the container running
+    # We'll interact with it via docker exec
+    stdin_open: true
+    tty: true
+
+    volumes:
+      # Mount for logs/data if needed
+      - ./data:/data
+
+    restart: unless-stopped
+
+    # Network configuration for airgapped testing
+    networks:
+      - gitlab-mcp-net
+
+networks:
+  gitlab-mcp-net:
+    driver: bridge

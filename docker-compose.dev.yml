@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  gitlab-mcp-dev:
+    image: node:20-alpine
+    container_name: gitlab-mcp-dev
+    working_dir: /app
+
+    # Mount the entire project directory
+    volumes:
+      - .:/app
+      - /app/node_modules  # Use container's node_modules
+
+    environment:
+      # GitLab Configuration
+      GITLAB_API_URL: "${GITLAB_API_URL}"
+      GITLAB_TOKEN: "${GITLAB_TOKEN}"
+
+      # Feature Flags
+      GITLAB_READ_ONLY_MODE: "${GITLAB_READ_ONLY_MODE:-false}"
+      USE_GITLAB_WIKI: "${USE_GITLAB_WIKI:-true}"
+      USE_PIPELINE: "${USE_PIPELINE:-true}"
+      GITLAB_PROJECT_ACCESS_LEVEL: "${GITLAB_PROJECT_ACCESS_LEVEL:-50}"
+
+      # MCP Transport Mode (use stdio for evaluation)
+      SSE: "${SSE:-false}"
+      STREAMABLE_HTTP: "${STREAMABLE_HTTP:-false}"
+
+      # Node Environment
+      NODE_ENV: "development"
+
+    # Keep container running for interactive use
+    stdin_open: true
+    tty: true
+
+    # Override entrypoint to keep container alive
+    command: /bin/sh -c "npm install && tail -f /dev/null"
+
+    networks:
+      - gitlab-mcp-net
+
+networks:
+  gitlab-mcp-net:
+    driver: bridge
