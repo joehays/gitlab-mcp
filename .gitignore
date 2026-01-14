@@ -16,3 +16,4 @@ coverage/
 
 # Environment files with credentials
 .env.eval
+.python-version
