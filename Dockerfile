@@ -21,6 +21,6 @@ ENV NODE_ENV=production
 
 EXPOSE 3002
 
-RUN npm ci --ignore-scripts --omit-dev
+RUN npm ci --ignore-scripts --omit-dev && npm audit fix 2>/dev/null || true
 
 ENTRYPOINT ["node", "build/index.js"]
